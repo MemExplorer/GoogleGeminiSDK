@@ -29,7 +29,6 @@ namespace GoogleGeminiSDK;
 [JsonSerializable(typeof(CitationMetadata))]
 [JsonSerializable(typeof(CitationSource))]
 [JsonSerializable(typeof(GeminiGenerateContentRequest))]
-[JsonSerializable(typeof(GeminiGenerateContentResponse))]
 [JsonSerializable(typeof(GenerateContentResponse))]
 [JsonSerializable(typeof(GroundingAttribution))]
 [JsonSerializable(typeof(GroundingChunk))]

@@ -12,13 +12,13 @@ public record ExecutableCode(CodeLanguage CodeLanguage, string Code);
 
 public record FileData(string FileUri, string? MimeType);
 
-public record FunctionCall(string Name, Dictionary<string, object>? Args);
+public record FunctionCall(string Name, IDictionary<string, object?>? Args);
 
 public record FunctionCallingConfig(FunctionCallingMode? Mode, string[]? AllowedFunctionNames);
 
 public record FunctionDeclaration(string Name, string Description, Schema? Parameters);
 
-public record FunctionResponse(string Name, Dictionary<string, object> Response);
+public record FunctionResponse(string Name, Dictionary<string, object?>? Response);
 
 public record GoogleSearchRetrieval(DynamicRetrievalConfig DynamicRetrievalConfig);
 

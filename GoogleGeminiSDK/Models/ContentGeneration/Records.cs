@@ -10,18 +10,12 @@ public record CitationSource(uint? StartIndex, uint? EndIndex, string? Uri, stri
 
 public record GeminiGenerateContentRequest(
 	Content[] Contents,
-	Tool? Tools = null,
+	Tool[]? Tools = null,
 	ToolConfig? ToolConfig = null,
 	SafetySetting[]? SafetySettings = null,
 	Content? SystemInstruction = null,
 	GenerationConfig? GenerationConfig = null,
 	string? CachedContent = null
-);
-
-public record GeminiGenerateContentResponse(
-	ResponseCandidate[] Candidates,
-	PromptFeedback PromptFeedback,
-	UsageMetadata UsageMetadata
 );
 
 public record GenerateContentResponse(
