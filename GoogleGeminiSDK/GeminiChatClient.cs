@@ -1,4 +1,5 @@
 ﻿using System.Net.Http.Json;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using GoogleGeminiSDK.Models.Components;
 using GoogleGeminiSDK.Models.ContentGeneration;
@@ -40,11 +41,26 @@ public class GeminiChatClient : IChatClient
 		};
 	}
 
-	public IAsyncEnumerable<StreamingChatCompletionUpdate> CompleteStreamingAsync(IList<ChatMessage> chatMessages,
+	public async IAsyncEnumerable<StreamingChatCompletionUpdate> CompleteStreamingAsync(IList<ChatMessage> chatMessages,
 		ChatOptions? options = null,
-		CancellationToken cancellationToken = new()) =>
-		// TODO: Support streaming chat
-		throw new NotImplementedException();
+		[EnumeratorCancellation] CancellationToken cancellationToken = new())
+	{
+		await foreach (var msgChunk in SendToGeminiStream(chatMessages, cancellationToken, options))
+		{
+			var newResponse = HandleAiToolsStream(msgChunk, chatMessages, options, cancellationToken);
+			await foreach (var newChunkResponse in newResponse)
+			{
+				var firstCandidate = newChunkResponse.Candidates[0];
+				var chatContent = firstCandidate.Content;
+				var firstPart = chatContent.Parts.First();
+				yield return new StreamingChatCompletionUpdate
+				{
+					Text = firstPart.Text, Role = new ChatRole(chatContent.Role!)
+				};
+			}
+		}
+	}
+
 
 	public object? GetService(Type serviceType, object? serviceKey = null) =>
 		serviceKey is not null && typeof(IChatClient) == serviceType ? this : null;
@@ -56,7 +72,7 @@ public class GeminiChatClient : IChatClient
 
 	private Uri GetChatEndpoint(bool streaming = false) =>
 		new(DefaultGeminiEndpoint,
-			$"v1beta/models/{Metadata.ModelId}:{(streaming ? "streamGenerateContent" : "generateContent")}?key={ApiKey}");
+			$"v1beta/models/{Metadata.ModelId}:{(streaming ? "streamGenerateContent?alt=sse&" : "generateContent?")}key={ApiKey}");
 
 	private async Task<GenerateContentResponse> SendToGemini(IList<ChatMessage> chatMessages,
 		CancellationToken cancellationToken, ChatOptions? options = null)
@@ -80,9 +96,71 @@ public class GeminiChatClient : IChatClient
 		return response;
 	}
 
-	# region Response Serialization
+	private async IAsyncEnumerable<GenerateContentResponse> SendToGeminiStream(IList<ChatMessage> chatMessages,
+		[EnumeratorCancellation] CancellationToken cancellationToken, ChatOptions? options = null)
+	{
+		using HttpRequestMessage request = new(HttpMethod.Post, GetChatEndpoint(true));
+		request.Content = JsonContent.Create(ToGeminiMessage(chatMessages, options),
+			JsonContext.Default.GeminiGenerateContentRequest);
+
+		using var httpResponse = await _httpClient
+			.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+
+		if (!httpResponse.IsSuccessStatusCode)
+		{
+			string strResp = await httpResponse.Content.ReadAsStringAsync(cancellationToken);
+			throw new Exception(strResp);
+		}
+
+		await using var responseStream =
+			await httpResponse.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+		using var streamReader = new StreamReader(responseStream);
+		while (await streamReader.ReadLineAsync(cancellationToken).ConfigureAwait(false) is { } line)
+		{
+			if (string.IsNullOrEmpty(line))
+				continue;
+
+			// temporary solution to get rid of the "data:" that has no double quotes at the header of the json data
+			string removedHeader = line[5..];
+			var chunk = JsonSerializer.Deserialize(removedHeader, JsonContext.Default.GenerateContentResponse);
+			if (chunk is null)
+				continue;
+
+			yield return chunk;
+		}
+	}
+
+	# region Tool Handlers
 
 	private async Task<GenerateContentResponse> HandleAiTools(GenerateContentResponse response,
+		IList<ChatMessage> chatMessages, ChatOptions? options,
+		CancellationToken cancellationToken)
+	{
+		var updatedChats = await HandleAiToolsInternal(response, chatMessages, options, cancellationToken);
+		if (updatedChats is null)
+			return response;
+
+		return await SendToGemini(updatedChats, cancellationToken, options);
+	}
+
+	private async IAsyncEnumerable<GenerateContentResponse> HandleAiToolsStream(GenerateContentResponse response,
+		IList<ChatMessage> chatMessages, ChatOptions? options,
+		[EnumeratorCancellation] CancellationToken cancellationToken)
+	{
+		var updatedChats = await HandleAiToolsInternal(response, chatMessages, options, cancellationToken);
+		if (updatedChats is null)
+		{
+			yield return response;
+			yield break;
+		}
+
+		await foreach (var chunk in SendToGeminiStream(updatedChats, cancellationToken, options))
+		{
+			yield return chunk;
+		}
+	}
+
+	private async Task<IList<ChatMessage>?> HandleAiToolsInternal(GenerateContentResponse response,
 		IList<ChatMessage> chatMessages, ChatOptions? options,
 		CancellationToken cancellationToken)
 	{
@@ -95,7 +173,7 @@ public class GeminiChatClient : IChatClient
 		// check if we have function calls
 		bool hasFuncCalls = chatContent.Parts.Any(x => x.FunctionCall != null);
 		if (!hasFuncCalls)
-			return response;
+			return null;
 
 		// tools should not be empty if we have function calls
 		if (options?.Tools is null || options.Tools.Count == 0)
@@ -143,8 +221,12 @@ public class GeminiChatClient : IChatClient
 		var messageToolResponse = new ChatMessage(ChatRole.User, funcCallResponseContentList);
 		chatsCopy.Add(modelToolResponse);
 		chatsCopy.Add(messageToolResponse);
-		return await SendToGemini(chatsCopy, cancellationToken, options);
+		return chatsCopy;
 	}
+
+	#endregion
+
+	# region Response Serialization
 
 	private static ChatFinishReason ToFinishReason(GenerateContentResponse response)
 	{
