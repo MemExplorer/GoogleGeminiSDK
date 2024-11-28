@@ -1,7 +1,7 @@
-﻿namespace GoogleGeminiSDK.Models.ContentGeneration;
+namespace GoogleGeminiSDK.Models.ContentGeneration;
 
 // ReSharper disable InconsistentNaming
-public enum FinishReason
+internal enum FinishReason
 {
 	FINISH_REASON_UNSPECIFIED,
 	STOP,

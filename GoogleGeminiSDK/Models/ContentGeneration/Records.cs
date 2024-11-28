@@ -1,14 +1,14 @@
-﻿using GoogleGeminiSDK.Models.Components;
+using GoogleGeminiSDK.Models.Components;
 
 namespace GoogleGeminiSDK.Models.ContentGeneration;
 
-public record AttributionSourceId(GroundingPassageId? GroundingPassage, SemanticRetrieverChunk? SemanticRetrieverChunk);
+internal record AttributionSourceId(GroundingPassageId? GroundingPassage, SemanticRetrieverChunk? SemanticRetrieverChunk);
 
-public record CitationMetadata(CitationSource[] CitationSources);
+internal record CitationMetadata(CitationSource[] CitationSources);
 
-public record CitationSource(uint? StartIndex, uint? EndIndex, string? Uri, string? License);
+internal record CitationSource(uint? StartIndex, uint? EndIndex, string? Uri, string? License);
 
-public record GeminiGenerateContentRequest(
+internal record GeminiGenerateContentRequest(
 	Content[] Contents,
 	Tool[]? Tools = null,
 	ToolConfig? ToolConfig = null,
@@ -18,13 +18,13 @@ public record GeminiGenerateContentRequest(
 	string? CachedContent = null
 );
 
-public record GenerateContentResponse(
+internal record GenerateContentResponse(
 	ResponseCandidate[] Candidates,
 	PromptFeedback PromptFeedback,
 	UsageMetadata UsageMetadata
 );
 
-public record GenerationConfig(
+internal record GenerationConfig(
 	string[]? StopSequences = null,
 	string? ResponseMimeType = null,
 	Schema? ResponseSchema = null,
@@ -41,29 +41,29 @@ public record GenerationConfig(
 	int? Logprobs = null
 );
 
-public record GroundingAttribution(AttributionSourceId Source, Content Content);
+internal record GroundingAttribution(AttributionSourceId Source, Content Content);
 
-public record GroundingChunk(Web? Web);
+internal record GroundingChunk(Web? Web);
 
-public record GroundingMetadata(
+internal record GroundingMetadata(
 	GroundingChunk[] GroundingChunks,
 	GroundingSupport[] GroundingSupports,
 	string[] WebSearchQueries,
 	SearchEntryPoint? SearchEntryPoint,
 	RetrievalMetadata RetrievalMetadata);
 
-public record GroundingPassageId(string PassageId, uint PartIndex);
+internal record GroundingPassageId(string PassageId, uint PartIndex);
 
-public record GroundingSupport(uint[] GroundingChunkIndices, float[] ConfidenceScores, Segment Segment);
+internal record GroundingSupport(uint[] GroundingChunkIndices, float[] ConfidenceScores, Segment Segment);
 
-public record LogprobsResult(TopCandidates[] TopCandidates, ProbsCandidate[] ChosenCandidates);
+internal record LogprobsResult(TopCandidates[] TopCandidates, ProbsCandidate[] ChosenCandidates);
 
 // ReSharper disable once IdentifierTypo
-public record ProbsCandidate(string Token, uint TokenId, float LogProbability);
+internal record ProbsCandidate(string Token, uint TokenId, float LogProbability);
 
-public record PromptFeedback(BlockReason BlockReason, SafetyRating[] SafetyRatings);
+internal record PromptFeedback(BlockReason BlockReason, SafetyRating[] SafetyRatings);
 
-public record ResponseCandidate(
+internal record ResponseCandidate(
 	Content Content,
 	FinishReason? FinishReason,
 	SafetyRating[] SafetyRatings,
@@ -78,24 +78,24 @@ public record ResponseCandidate(
 	uint Index
 );
 
-public record RetrievalMetadata(uint? GoogleSearchDynamicRetrievalScore);
+internal record RetrievalMetadata(uint? GoogleSearchDynamicRetrievalScore);
 
-public record SafetyRating(HarmCategory Category, HarmProbability Probability, bool Blocked);
+internal record SafetyRating(HarmCategory Category, HarmProbability Probability, bool Blocked);
 
-public record SafetySetting(HarmCategory Category, HarmBlockThreshold Threshold);
+internal record SafetySetting(HarmCategory Category, HarmBlockThreshold Threshold);
 
-public record SearchEntryPoint(string? RenderedContent, byte[]? SdkBlob);
+internal record SearchEntryPoint(string? RenderedContent, byte[]? SdkBlob);
 
-public record Segment(uint PartIndex, uint StartIndex, uint EndIndex, string Text);
+internal record Segment(uint PartIndex, uint StartIndex, uint EndIndex, string Text);
 
-public record SemanticRetrieverChunk(string Source, string Chunk);
+internal record SemanticRetrieverChunk(string Source, string Chunk);
 
-public record TopCandidates(ProbsCandidate[] Candidates);
+internal record TopCandidates(ProbsCandidate[] Candidates);
 
-public record UsageMetadata(
+internal record UsageMetadata(
 	uint PromptTokenCount,
 	uint CachedContentTokenCount,
 	uint CandidatesTokenCount,
 	uint TotalTokenCount);
 
-public record Web(string Uri, string Title);
+internal record Web(string Uri, string Title);

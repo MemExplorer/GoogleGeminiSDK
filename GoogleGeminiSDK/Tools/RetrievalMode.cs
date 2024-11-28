@@ -1,4 +1,4 @@
-﻿namespace GoogleGeminiSDK.Models.Components;
+namespace GoogleGeminiSDK.Tools;
 
 // ReSharper disable InconsistentNaming
 public enum RetrievalMode

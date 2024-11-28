@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using GoogleGeminiSDK.Models.Components;
@@ -73,10 +73,10 @@ public class GeminiChatClient : IChatClient
 
 	/// <inheritdoc />
 	public object? GetService(Type serviceType, object? serviceKey = null) =>
-		serviceKey is not null && typeof(IChatClient) == serviceType ? this : null;
+		serviceKey is null && serviceType.IsInstanceOfType(this) ? this : null;
 
 	public TService? GetService<TService>(object? key = null) where TService : class =>
-		GetService(typeof(TService), key) as TService;
+		(TService?)GetService(typeof(TService), key);
 
 	/// <inheritdoc />
 	public void Dispose() => _httpClient.Dispose();
@@ -175,9 +175,10 @@ public class GeminiChatClient : IChatClient
 		IList<ChatMessage> chatMessages, ChatOptions? options,
 		CancellationToken cancellationToken)
 	{
+		var fCallModelContent = new List<AIContent>();
+		var fCallReturnContent = new List<AIContent>();
+
 		// extract content
-		var funcCallContentList = new List<AIContent>();
-		var funcCallResponseContentList = new List<AIContent>();
 		var firstCandidate = response.Candidates[0];
 		var chatContent = firstCandidate.Content;
 
@@ -186,52 +187,62 @@ public class GeminiChatClient : IChatClient
 		if (!hasFuncCalls)
 			return null;
 
-		// tools should not be empty if we have function calls
+		// tools should not be empty if we have function call in response content
 		if (options?.Tools is null || options.Tools.Count == 0)
 			throw new Exception("Invalid Tool Call when Tools in options is invalid.");
 
 		var aiFuncTools = options.Tools.OfType<AIFunction>().ToList();
 		foreach (var p in chatContent.Parts)
-			if (p.FunctionCall != null)
+		{
+			if (p.FunctionCall == null)
+				continue;
+
+			// fetch AI function by name
+			var currentAiFunction = aiFuncTools.First(x => x.Metadata.Name == p.FunctionCall.Name);
+
+			//execute function called by LLM
+			var jsonRetValue =
+				(JsonElement?)await currentAiFunction.InvokeAsync(p.FunctionCall.Args, cancellationToken);
+
+			// deserialize return value
+			object? deserializedRetValue =
+				jsonRetValue?.Deserialize(currentAiFunction.Metadata.ReturnParameter.ParameterType!);
+
+			// deserialize args to its correct type
+			IDictionary<string, object?> deserializedArgs = new Dictionary<string, object?>();
+			var argTypeMap = currentAiFunction.Metadata.Parameters.ToDictionary(x => x.Name, x => x.ParameterType);
+			if (p.FunctionCall.Args != null)
 			{
-				// run function called by LLM
-				var currentAiFunction = aiFuncTools.First(x => x.Metadata.Name == p.FunctionCall.Name);
+				foreach (var arg in p.FunctionCall.Args)
+				{
+					object? deserializedArg = null;
+					if (arg.Value is JsonElement je)
+						deserializedArg = je.Deserialize(argTypeMap[arg.Key]!);
+					else
+						throw new Exception("Failed deserializing argument!");
 
-				// deserialize return value
-				var jsonRetValue =
-					(JsonElement?)await currentAiFunction.InvokeAsync(p.FunctionCall.Args, cancellationToken);
-				object? deserializedRetValue =
-					jsonRetValue?.Deserialize(currentAiFunction.Metadata.ReturnParameter.ParameterType!);
-
-				// deserialize args to its correct type
-				IDictionary<string, object?> deserializedArgs = new Dictionary<string, object?>();
-				var argTypeMap = currentAiFunction.Metadata.Parameters.ToDictionary(x => x.Name, x => x.ParameterType);
-				if (p.FunctionCall.Args != null)
-					foreach (var arg in p.FunctionCall.Args)
-					{
-						object? deserializedArg = null;
-						if (arg.Value is JsonElement je)
-							deserializedArg = je.Deserialize(argTypeMap[arg.Key]!);
-
-						deserializedArgs.Add(arg.Key, deserializedArg);
-					}
-
-				// append to function call response
-				var callContentResponse = new FunctionResultContent("", p.FunctionCall.Name,
-					new Dictionary<string, object?> { { p.FunctionCall.Name, deserializedRetValue } });
-				var callContent = new FunctionCallContent(callContentResponse.CallId, callContentResponse.Name,
-					deserializedArgs);
-				funcCallResponseContentList.Add(callContentResponse);
-				funcCallContentList.Add(callContent);
+					deserializedArgs.Add(arg.Key, deserializedArg);
+				}
 			}
+			
 
-		// update messages without affecting the original messages
-		// to exclude tools-related messages
+			// append to function call response
+			var modelCallContent = new FunctionCallContent("", p.FunctionCall.Name,
+				deserializedArgs);
+			var fReturnContent = new FunctionResultContent(modelCallContent.CallId, p.FunctionCall.Name,
+				new Dictionary<string, object?> { { p.FunctionCall.Name, deserializedRetValue } });
+			fCallModelContent.Add(modelCallContent);
+			fCallReturnContent.Add(fReturnContent);
+		}
+
+		// update messages without affecting the original messages to exclude tools-related messages
 		var chatsCopy = new List<ChatMessage>(chatMessages);
-		var modelToolResponse = new ChatMessage(ModelRole, funcCallContentList);
-		var messageToolResponse = new ChatMessage(ChatRole.User, funcCallResponseContentList);
-		chatsCopy.Add(modelToolResponse);
-		chatsCopy.Add(messageToolResponse);
+		var modelMessage = new ChatMessage(ModelRole, fCallModelContent);
+
+		// a message that returns the result of all the functions called by the LLM
+		var fRetMessage = new ChatMessage(ChatRole.User, fCallReturnContent);
+		chatsCopy.Add(modelMessage);
+		chatsCopy.Add(fRetMessage);
 		return chatsCopy;
 	}
 

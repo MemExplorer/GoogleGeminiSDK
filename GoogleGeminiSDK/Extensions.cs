@@ -1,15 +1,15 @@
-﻿using GoogleGeminiSDK.Models.Components;
+using GoogleGeminiSDK.Models.Components;
 using Microsoft.Extensions.AI;
 
 namespace GoogleGeminiSDK;
 
-public static class Extensions
+internal static class Extensions
 {
-	public static TPropertyType? GetValueOrDefault<TPropertyType>(this AdditionalPropertiesDictionary dictionary,
+	internal static TPropertyType? GetValueOrDefault<TPropertyType>(this AdditionalPropertiesDictionary dictionary,
 		string key) =>
 		(TPropertyType?)dictionary.GetValueOrDefault(key);
 
-	public static IEnumerable<Content> ToGemini(this IList<ChatMessage> messages) =>
+	internal static IEnumerable<Content> ToGemini(this IList<ChatMessage> messages) =>
 		messages.Select(x => new Content(
 			ToGeminiMessageParts(x),
 			x.Role.Value

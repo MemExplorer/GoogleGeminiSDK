@@ -1,7 +1,7 @@
-﻿namespace GoogleGeminiSDK.Models.Components;
+namespace GoogleGeminiSDK.Models.Components;
 
 // ReSharper disable InconsistentNaming
-public enum CodeLanguage
+internal enum CodeLanguage
 {
 	LANGUAGE_UNSPECIFIED,
 	PYTHON

@@ -1,28 +1,30 @@
-﻿namespace GoogleGeminiSDK.Models.Components;
+using GoogleGeminiSDK.Tools;
 
-public record Blob(string MimeType, ReadOnlyMemory<byte>? Data);
+namespace GoogleGeminiSDK.Models.Components;
 
-public record CodeExecutionResult(CodeExecutionOutcome CodeExecutionOutcome, string? Output);
+internal record Blob(string MimeType, ReadOnlyMemory<byte>? Data);
 
-public record Content(Part[] Parts, string? Role = null);
+internal record CodeExecutionResult(CodeExecutionOutcome CodeExecutionOutcome, string? Output);
 
-public record DynamicRetrievalConfig(RetrievalMode Mode, float? DynamicThreshold);
+internal record Content(Part[] Parts, string? Role = null);
 
-public record ExecutableCode(CodeLanguage CodeLanguage, string Code);
+internal record DynamicRetrievalConfig(RetrievalMode Mode, float? DynamicThreshold);
 
-public record FileData(string FileUri, string? MimeType);
+internal record ExecutableCode(CodeLanguage CodeLanguage, string Code);
 
-public record FunctionCall(string Name, IDictionary<string, object?>? Args);
+internal record FileData(string FileUri, string? MimeType);
 
-public record FunctionCallingConfig(FunctionCallingMode? Mode, string[]? AllowedFunctionNames);
+internal record FunctionCall(string Name, IDictionary<string, object?>? Args);
 
-public record FunctionDeclaration(string Name, string Description, Schema? Parameters);
+internal record FunctionCallingConfig(FunctionCallingMode? Mode, string[]? AllowedFunctionNames);
 
-public record FunctionResponse(string Name, Dictionary<string, object?>? Response);
+internal record FunctionDeclaration(string Name, string Description, Schema? Parameters);
 
-public record GoogleSearchRetrieval(DynamicRetrievalConfig DynamicRetrievalConfig);
+internal record FunctionResponse(string Name, Dictionary<string, object?>? Response);
 
-public record Part(
+internal record GoogleSearchRetrieval(DynamicRetrievalConfig DynamicRetrievalConfig);
+
+internal record Part(
 	string? Text = null,
 	Blob? InlineData = null,
 	FunctionCall? FunctionCall = null,
@@ -32,7 +34,7 @@ public record Part(
 	CodeExecutionResult? CodeExecutionResult = null
 );
 
-public record Schema(
+internal record Schema(
 	SchemaType Type,
 	string? Format = null,
 	string? Description = null,
@@ -44,9 +46,9 @@ public record Schema(
 	Schema? Items = null
 );
 
-public record Tool(
+internal record Tool(
 	FunctionDeclaration[]? FunctionDeclarations = null,
 	GoogleSearchRetrieval? GoogleSearchRetrieval = null,
 	object? CodeExecution = null);
 
-public record ToolConfig(FunctionCallingConfig? FunctionCallingConfig);
+internal record ToolConfig(FunctionCallingConfig? FunctionCallingConfig);

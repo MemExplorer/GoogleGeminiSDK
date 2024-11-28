@@ -1,7 +1,7 @@
-﻿namespace GoogleGeminiSDK.Models.Components;
+namespace GoogleGeminiSDK.Models.Components;
 
 // ReSharper disable InconsistentNaming
-public enum CodeExecutionOutcome
+internal enum CodeExecutionOutcome
 {
 	OUTCOME_UNSPECIFIED,
 	OUTCOME_OK,

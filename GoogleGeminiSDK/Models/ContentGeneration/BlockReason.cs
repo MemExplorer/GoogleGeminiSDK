@@ -1,7 +1,7 @@
-﻿namespace GoogleGeminiSDK.Models.ContentGeneration;
+namespace GoogleGeminiSDK.Models.ContentGeneration;
 
 // ReSharper disable InconsistentNaming
-public enum BlockReason
+internal enum BlockReason
 {
 	BLOCK_REASON_UNSPECIFIED,
 	SAFETY,

@@ -1,7 +1,7 @@
-﻿namespace GoogleGeminiSDK.Models.ContentGeneration;
+namespace GoogleGeminiSDK.Models.ContentGeneration;
 
 // ReSharper disable InconsistentNaming
-public enum HarmProbability
+internal enum HarmProbability
 {
 	HARM_PROBABILITY_UNSPECIFIED,
 	NEGLIGIBLE,
