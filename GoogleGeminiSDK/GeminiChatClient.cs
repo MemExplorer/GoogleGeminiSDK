@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using GoogleGeminiSDK.Models.Components;
 using GoogleGeminiSDK.Models.ContentGeneration;
+using GoogleGeminiSDK.Tools;
 using Microsoft.Extensions.AI;
 
 // ReSharper disable StringLiteralTypo
@@ -11,6 +12,7 @@ namespace GoogleGeminiSDK;
 
 public class GeminiChatClient : IChatClient
 {
+	/// <inheritdoc />
 	public ChatClientMetadata Metadata { get; }
 	private string ApiKey { get; }
 
@@ -19,6 +21,12 @@ public class GeminiChatClient : IChatClient
 
 	private readonly HttpClient _httpClient;
 
+	/// <summary>
+	/// Initializes a new instance of the <see cref="GeminiChatClient"/> class.
+	/// </summary>
+	/// <param name="apiKey">Your Gemini API Key</param>
+	/// <param name="modelId">Model Id</param>
+	/// <param name="httpClient">Customizable HTTPClient</param>
 	public GeminiChatClient(string apiKey, string modelId, HttpClient? httpClient = null)
 	{
 		ApiKey = apiKey;
@@ -26,6 +34,7 @@ public class GeminiChatClient : IChatClient
 		Metadata = new ChatClientMetadata("Google Gemini", DefaultGeminiEndpoint, modelId);
 	}
 
+	/// <inheritdoc />
 	public async Task<ChatCompletion> CompleteAsync(IList<ChatMessage> chatMessages, ChatOptions? options = null,
 		CancellationToken cancellationToken = new())
 	{
@@ -41,6 +50,7 @@ public class GeminiChatClient : IChatClient
 		};
 	}
 
+	/// <inheritdoc />
 	public async IAsyncEnumerable<StreamingChatCompletionUpdate> CompleteStreamingAsync(IList<ChatMessage> chatMessages,
 		ChatOptions? options = null,
 		[EnumeratorCancellation] CancellationToken cancellationToken = new())
@@ -61,13 +71,14 @@ public class GeminiChatClient : IChatClient
 		}
 	}
 
-
+	/// <inheritdoc />
 	public object? GetService(Type serviceType, object? serviceKey = null) =>
 		serviceKey is not null && typeof(IChatClient) == serviceType ? this : null;
 
 	public TService? GetService<TService>(object? key = null) where TService : class =>
 		GetService(typeof(TService), key) as TService;
 
+	/// <inheritdoc />
 	public void Dispose() => _httpClient.Dispose();
 
 	private Uri GetChatEndpoint(bool streaming = false) =>
@@ -305,12 +316,21 @@ public class GeminiChatClient : IChatClient
 	private static Tool[]? CreateToolFromOptions(ChatOptions? options)
 	{
 		var toolList = new List<Tool>();
-		var funcDecls = new List<FunctionDeclaration>();
 		if (options?.Tools == null || options.Tools.Count == 0)
 			return null;
 
-		foreach (var aiTool in options.Tools)
-			if (aiTool is AIFunction af)
+		var searchRetrieval = options.Tools.OfType<GroundingTool>()
+			.Select(gt =>
+			{
+				var retrievalConfig = new DynamicRetrievalConfig(gt.Mode, gt.Threshold);
+				return new GoogleSearchRetrieval(retrievalConfig);
+			}).ToList();
+		
+		if (searchRetrieval.Count > 1)
+			throw new Exception("Only a single instance of the GroundingTool is allowed.");
+		
+		var funcDecls = options.Tools.OfType<AIFunction>()
+			.Select(af =>
 			{
 				string fName = af.Metadata.Name;
 				string fDesc = af.Metadata.Description;
@@ -319,18 +339,17 @@ public class GeminiChatClient : IChatClient
 						Properties: af.Metadata.Parameters.ToDictionary(x => x.Name,
 							y => new Schema(GetSchemaType(y.ParameterType), Description: y.Description)))
 					: null;
-				var funcDecl = new FunctionDeclaration(fName, fDesc, fParams);
-				funcDecls.Add(funcDecl);
-			}
+				return new FunctionDeclaration(fName, fDesc, fParams);
+			}).ToList();
 
 		if (funcDecls.Count > 0)
-			toolList.Add(new Tool(funcDecls.ToArray(), null, null));
+			toolList.Add(new Tool(FunctionDeclarations: funcDecls.ToArray()));
 
-		// TODO: Add support for Search Retrieval and Code Execution
-		if (toolList.Count == 0)
-			return null;
+		if (searchRetrieval.Count > 0)
+			toolList.Add(new Tool(GoogleSearchRetrieval: searchRetrieval.First()));
 
-		return toolList.ToArray();
+		// TODO: Add support for Code Execution
+		return toolList.Count == 0 ? null : toolList.ToArray();
 	}
 
 	private static SchemaType GetSchemaType(Type? t)

@@ -45,8 +45,8 @@ public record Schema(
 );
 
 public record Tool(
-	FunctionDeclaration[]? FunctionDeclarations,
-	GoogleSearchRetrieval? GoogleSearchRetrieval,
-	object? CodeExecution);
+	FunctionDeclaration[]? FunctionDeclarations = null,
+	GoogleSearchRetrieval? GoogleSearchRetrieval = null,
+	object? CodeExecution = null);
 
 public record ToolConfig(FunctionCallingConfig? FunctionCallingConfig);
