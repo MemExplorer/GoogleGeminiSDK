@@ -151,7 +151,7 @@ public class GeminiChatClient : IChatClient
 		if (updatedChats is null)
 			return response;
 
-		return await SendToGemini(updatedChats, cancellationToken, options);
+		return await SendToGemini(updatedChats, cancellationToken, null);
 	}
 
 	private async IAsyncEnumerable<GenerateContentResponse> HandleAiToolsStream(GenerateContentResponse response,
@@ -165,7 +165,7 @@ public class GeminiChatClient : IChatClient
 			yield break;
 		}
 
-		await foreach (var chunk in SendToGeminiStream(updatedChats, cancellationToken, options))
+		await foreach (var chunk in SendToGeminiStream(updatedChats, cancellationToken, null))
 		{
 			yield return chunk;
 		}
@@ -240,7 +240,7 @@ public class GeminiChatClient : IChatClient
 		var modelMessage = new ChatMessage(ModelRole, fCallModelContent);
 
 		// a message that returns the result of all the functions called by the LLM
-		var fRetMessage = new ChatMessage(ChatRole.User, fCallReturnContent);
+		var fRetMessage = new ChatMessage(new ChatRole("function"), fCallReturnContent);
 		chatsCopy.Add(modelMessage);
 		chatsCopy.Add(fRetMessage);
 		return chatsCopy;
