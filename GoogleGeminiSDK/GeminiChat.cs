@@ -147,8 +147,8 @@ public class GeminiChat
 		// append user chat content
 		var userMsg = new ChatMessage(ChatRole.User, content);
 		_messages.Add(userMsg);
-		
-		if(OnChatReceive != null)
+
+		if (OnChatReceive != null)
 			OnChatReceive?.Invoke(this, new ChatEventArgs(userMsg));
 	}
 

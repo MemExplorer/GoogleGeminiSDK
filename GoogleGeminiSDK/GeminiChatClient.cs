@@ -46,7 +46,8 @@ public class GeminiChatClient : IChatClient
 		// deserialize gemini response
 		return new ChatCompletion(FromGeminiResponse(response))
 		{
-			ModelId = Metadata.ModelId, FinishReason = ToFinishReason(response)
+			ModelId = Metadata.ModelId,
+			FinishReason = ToFinishReason(response)
 		};
 	}
 
@@ -65,7 +66,8 @@ public class GeminiChatClient : IChatClient
 				var firstPart = chatContent.Parts.First();
 				yield return new StreamingChatCompletionUpdate
 				{
-					Text = firstPart.Text, Role = new ChatRole(chatContent.Role!)
+					Text = firstPart.Text,
+					Role = new ChatRole(chatContent.Role!)
 				};
 			}
 		}
@@ -141,7 +143,7 @@ public class GeminiChatClient : IChatClient
 		}
 	}
 
-	# region Tool Handlers
+	#region Tool Handlers
 
 	private async Task<GenerateContentResponse> HandleAiTools(GenerateContentResponse response,
 		IList<ChatMessage> chatMessages, ChatOptions? options,
@@ -224,7 +226,7 @@ public class GeminiChatClient : IChatClient
 					deserializedArgs.Add(arg.Key, deserializedArg);
 				}
 			}
-			
+
 
 			// append to function call response
 			var modelCallContent = new FunctionCallContent("", p.FunctionCall.Name,
@@ -248,7 +250,7 @@ public class GeminiChatClient : IChatClient
 
 	#endregion
 
-	# region Response Serialization
+	#region Response Serialization
 
 	private static ChatFinishReason ToFinishReason(GenerateContentResponse response)
 	{
@@ -291,11 +293,11 @@ public class GeminiChatClient : IChatClient
 		var tools = CreateToolFromOptions(options);
 		var toolConfig = options is { Tools.Count: > 0 } && options.Tools.Any(x => x is AIFunction)
 			? new ToolConfig(new FunctionCallingConfig(options.ToolMode switch
-				{
-					AutoChatToolMode _ => FunctionCallingMode.AUTO,
-					RequiredChatToolMode _ => FunctionCallingMode.ANY,
-					_ => FunctionCallingMode.NONE
-				},
+			{
+				AutoChatToolMode _ => FunctionCallingMode.AUTO,
+				RequiredChatToolMode _ => FunctionCallingMode.ANY,
+				_ => FunctionCallingMode.NONE
+			},
 				additionalProperties?.GetValueOrDefault<IList<string>?>("allowedFunctionNames")))
 			: null;
 
@@ -323,10 +325,10 @@ public class GeminiChatClient : IChatClient
 				var retrievalConfig = new DynamicRetrievalConfig(gt.Mode, gt.Threshold);
 				return new GoogleSearchRetrieval(retrievalConfig);
 			}).ToList();
-		
+
 		if (searchRetrieval.Count > 1)
 			throw new Exception("Only a single instance of the GroundingTool is allowed.");
-		
+
 		var funcDecls = options.Tools.OfType<AIFunction>()
 			.Select(af =>
 			{
