@@ -1,7 +1,7 @@
 namespace GoogleGeminiSDK.Models.Components;
 
 // ReSharper disable InconsistentNaming
-internal enum SchemaType
+public enum SchemaType
 {
 	TYPE_UNSPECIFIED,
 	STRING,

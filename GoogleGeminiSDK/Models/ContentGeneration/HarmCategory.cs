@@ -1,7 +1,7 @@
 namespace GoogleGeminiSDK.Models.ContentGeneration;
 
 // ReSharper disable InconsistentNaming
-internal enum HarmCategory
+public enum HarmCategory
 {
 	HARM_CATEGORY_UNSPECIFIED,
 	HARM_CATEGORY_DEROGATORY,

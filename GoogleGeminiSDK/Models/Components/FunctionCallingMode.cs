@@ -1,7 +1,7 @@
 namespace GoogleGeminiSDK.Models.Components;
 
 // ReSharper disable InconsistentNaming
-internal enum FunctionCallingMode
+public enum FunctionCallingMode
 {
 	MODE_UNSPECIFIED,
 	AUTO,

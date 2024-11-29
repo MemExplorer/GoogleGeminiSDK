@@ -1,7 +1,7 @@
 namespace GoogleGeminiSDK.Models.ContentGeneration;
 
 // ReSharper disable InconsistentNaming
-internal enum HarmBlockThreshold
+public enum HarmBlockThreshold
 {
 	HARM_BLOCK_THRESHOLD_UNSPECIFIED,
 	BLOCK_LOW_AND_ABOVE,

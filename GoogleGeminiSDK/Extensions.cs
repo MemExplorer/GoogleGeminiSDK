@@ -15,7 +15,26 @@ internal static class Extensions
 			x.Role.Value
 		));
 
-	private static Part[] ToGeminiMessageParts(ChatMessage chatMessage)
+	internal static ChatMessage ToChatMessage(this Content content)
+	{
+		var geminiContentList = new List<AIContent>();
+		foreach (var p in content.Parts)
+		{
+			if (!string.IsNullOrEmpty(p.Text))
+			{
+				var textContent = new TextContent(p.Text);
+				geminiContentList.Add(textContent);
+			}
+			else
+			{
+				throw new NotSupportedException("Unsupported gemini content type");
+			}
+		}
+
+		return new ChatMessage(new ChatRole(content.Role!), geminiContentList);
+	}
+
+	private static List<Part> ToGeminiMessageParts(ChatMessage chatMessage)
 	{
 		var parts = new List<Part>();
 		foreach (var content in chatMessage.Contents)
@@ -23,7 +42,7 @@ internal static class Extensions
 			var part = content switch
 			{
 				TextContent textContent => new Part(textContent.Text),
-				ImageContent imageContent => new Part(InlineData: new Blob(imageContent.MediaType!, imageContent.Data)),
+				DataContent dataContent => new Part(InlineData: new Blob(dataContent.MediaType!, dataContent.Data)),
 				FunctionCallContent functionCall => new Part(
 					FunctionCall: new FunctionCall(functionCall.Name, functionCall.Arguments)),
 				FunctionResultContent functionResultContent => new Part(
@@ -36,6 +55,6 @@ internal static class Extensions
 				parts.Add(part);
 		}
 
-		return parts.ToArray();
+		return parts;
 	}
 }

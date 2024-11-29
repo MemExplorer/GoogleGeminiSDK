@@ -261,28 +261,15 @@ public class GeminiChatClient : IChatClient
 	{
 		var firstCandidate = response.Candidates[0];
 		var chatContent = firstCandidate.Content;
-
-		var geminiContentList = new List<AIContent>();
-		foreach (var p in chatContent.Parts)
-			if (!string.IsNullOrEmpty(p.Text))
-			{
-				var textContent = new TextContent(p.Text);
-				geminiContentList.Add(textContent);
-			}
-			else
-			{
-				throw new NotSupportedException("Unsupported gemini content type");
-			}
-
-		return new ChatMessage(new ChatRole(chatContent.Role!), geminiContentList);
+		return chatContent.ToChatMessage();
 	}
 
 	private static GeminiGenerateContentRequest ToGeminiMessage(IList<ChatMessage> chatMessages, ChatOptions? options)
 	{
-		var convertedMessages = chatMessages.ToGemini().ToArray();
+		var convertedMessages = chatMessages.ToGemini().ToList();
 		var additionalProperties = options?.AdditionalProperties;
 		var generationConfig = new GenerationConfig(
-			options?.StopSequences?.ToArray(),
+			options?.StopSequences,
 			additionalProperties?.GetValueOrDefault<string?>("responseMimeType"),
 			additionalProperties?.GetValueOrDefault<Schema?>("responseSchema"),
 			additionalProperties?.GetValueOrDefault<int?>("candidateCount"),
@@ -300,7 +287,7 @@ public class GeminiChatClient : IChatClient
 				? new Content([new Part(outSysInstr)])
 				: null;
 		string? cachedContent = additionalProperties?.GetValueOrDefault<string?>("cachedContent");
-		var safetySettings = additionalProperties?.GetValueOrDefault<SafetySetting[]>("safetySettings");
+		var safetySettings = additionalProperties?.GetValueOrDefault<IList<SafetySetting>?>("safetySettings");
 		var tools = CreateToolFromOptions(options);
 		var toolConfig = options is { Tools.Count: > 0 } && options.Tools.Any(x => x is AIFunction)
 			? new ToolConfig(new FunctionCallingConfig(options.ToolMode switch
@@ -309,7 +296,7 @@ public class GeminiChatClient : IChatClient
 					RequiredChatToolMode _ => FunctionCallingMode.ANY,
 					_ => FunctionCallingMode.NONE
 				},
-				additionalProperties?.GetValueOrDefault<string[]?>("allowedFunctionNames")))
+				additionalProperties?.GetValueOrDefault<IList<string>?>("allowedFunctionNames")))
 			: null;
 
 		return new GeminiGenerateContentRequest(
@@ -324,7 +311,7 @@ public class GeminiChatClient : IChatClient
 	}
 
 	// Supported Tools: Functions
-	private static Tool[]? CreateToolFromOptions(ChatOptions? options)
+	private static IList<Tool>? CreateToolFromOptions(ChatOptions? options)
 	{
 		var toolList = new List<Tool>();
 		if (options?.Tools == null || options.Tools.Count == 0)
@@ -354,13 +341,13 @@ public class GeminiChatClient : IChatClient
 			}).ToList();
 
 		if (funcDecls.Count > 0)
-			toolList.Add(new Tool(FunctionDeclarations: funcDecls.ToArray()));
+			toolList.Add(new Tool(FunctionDeclarations: funcDecls));
 
 		if (searchRetrieval.Count > 0)
 			toolList.Add(new Tool(GoogleSearchRetrieval: searchRetrieval.First()));
 
 		// TODO: Add support for Code Execution
-		return toolList.Count == 0 ? null : toolList.ToArray();
+		return toolList.Count == 0 ? null : toolList;
 	}
 
 	private static SchemaType GetSchemaType(Type? t)

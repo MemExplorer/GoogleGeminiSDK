@@ -1,3 +1,4 @@
+using GoogleGeminiSDK.Models.Components;
 using Microsoft.Extensions.AI;
 
 namespace GoogleGeminiSDK.Tools;

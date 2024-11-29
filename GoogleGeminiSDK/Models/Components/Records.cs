@@ -1,12 +1,10 @@
-using GoogleGeminiSDK.Tools;
-
 namespace GoogleGeminiSDK.Models.Components;
 
 internal record Blob(string MimeType, ReadOnlyMemory<byte>? Data);
 
 internal record CodeExecutionResult(CodeExecutionOutcome CodeExecutionOutcome, string? Output);
 
-internal record Content(Part[] Parts, string? Role = null);
+internal record Content(IList<Part> Parts, string? Role = null);
 
 internal record DynamicRetrievalConfig(RetrievalMode Mode, float? DynamicThreshold);
 
@@ -16,7 +14,7 @@ internal record FileData(string FileUri, string? MimeType);
 
 internal record FunctionCall(string Name, IDictionary<string, object?>? Args);
 
-internal record FunctionCallingConfig(FunctionCallingMode? Mode, string[]? AllowedFunctionNames);
+internal record FunctionCallingConfig(FunctionCallingMode? Mode, IList<string>? AllowedFunctionNames);
 
 internal record FunctionDeclaration(string Name, string Description, Schema? Parameters);
 
@@ -34,20 +32,20 @@ internal record Part(
 	CodeExecutionResult? CodeExecutionResult = null
 );
 
-internal record Schema(
+public record Schema(
 	SchemaType Type,
 	string? Format = null,
 	string? Description = null,
 	bool? Nullable = null,
-	string[]? Enum = null,
+	IList<string>? Enum = null,
 	long? MaxItems = null,
 	Dictionary<string, Schema>? Properties = null,
-	string[]? Required = null,
+	IList<string>? Required = null,
 	Schema? Items = null
 );
 
 internal record Tool(
-	FunctionDeclaration[]? FunctionDeclarations = null,
+	IList<FunctionDeclaration>? FunctionDeclarations = null,
 	GoogleSearchRetrieval? GoogleSearchRetrieval = null,
 	object? CodeExecution = null);
 
