@@ -14,9 +14,9 @@ public class GeminiChat
 	/// Occurs when a new chat message is received.
 	/// </summary>
 	/// <remarks>
-	/// The event handler provides <see cref="ChatEventArgs"/> containing details about the received message.
+	/// The event handler provides <see cref="ChatReceiveEventArgs"/> containing details about the received message.
 	/// </remarks>
-	public event EventHandler<ChatEventArgs> OnChatReceive;
+	public event EventHandler<ChatReceiveEventArgs> OnChatReceive;
 
 	private GeminiChatClient _client;
 	private List<ChatMessage> _messages;
@@ -37,11 +37,24 @@ public class GeminiChat
 	}
 
 	/// <summary>
+	/// Loads chat history from your list of messages
+	/// </summary>
+	/// <param name="messages">Chat history messages</param>
+	public void LoadHistory(IList<ChatMessage> messages) =>
+		_messages = [.. messages];
+
+	/// <summary>
 	/// Append chat message to history
 	/// </summary>
 	/// <param name="message">Abstracted chat message</param>
 	public void AppendToHistory(ChatMessage message) =>
 		_messages.Add(message);
+	
+	/// <summary>
+	/// Get the list of messages in the conversation
+	/// </summary>
+	/// <returns>A list of chat message</returns>
+	public IList<ChatMessage> GetHistory() => _messages;
 
 	/// <summary>
 	/// Clears chat history
@@ -77,7 +90,7 @@ public class GeminiChat
 		_messages.Add(chatResponse.Message);
 
 		if (OnChatReceive != null)
-			OnChatReceive.Invoke(this, new ChatEventArgs(chatResponse.Message));
+			OnChatReceive.Invoke(this, new ChatReceiveEventArgs(chatResponse.Message));
 
 		if (hasSettings && !settings.Conversational)
 			ClearHistory();
@@ -149,7 +162,7 @@ public class GeminiChat
 		_messages.Add(userMsg);
 
 		if (OnChatReceive != null)
-			OnChatReceive?.Invoke(this, new ChatEventArgs(userMsg));
+			OnChatReceive?.Invoke(this, new ChatReceiveEventArgs(userMsg));
 	}
 
 }

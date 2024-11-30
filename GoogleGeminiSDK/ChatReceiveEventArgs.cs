@@ -2,10 +2,10 @@
 using Microsoft.Extensions.AI;
 
 namespace GoogleGeminiSDK;
-public class ChatEventArgs : EventArgs
+public class ChatReceiveEventArgs : EventArgs
 {
 	public ChatMessage Message { get; }
 
-	internal ChatEventArgs(ChatMessage message) =>
+	internal ChatReceiveEventArgs(ChatMessage message) =>
 		Message = message;
 }
