@@ -16,9 +16,9 @@ public class GeminiChat
 	/// <remarks>
 	/// The event handler provides <see cref="ChatReceiveEventArgs"/> containing details about the received message.
 	/// </remarks>
-	public event EventHandler<ChatReceiveEventArgs> OnChatReceive;
+	public event EventHandler<ChatReceiveEventArgs>? OnChatReceive;
 
-	private GeminiChatClient _client;
+	private readonly GeminiChatClient _client;
 	private List<ChatMessage> _messages;
 
 	/// <summary>
@@ -32,7 +32,7 @@ public class GeminiChat
 		ApiKey = apiKey;
 		ModelId = modelId;
 
-		_messages = new List<ChatMessage>();
+		_messages = [];
 		_client = new GeminiChatClient(apiKey, ModelId, httpClient);
 	}
 
@@ -81,18 +81,22 @@ public class GeminiChat
 	/// </returns>
 	public async Task<ChatMessage> SendMessage(string message, IList<byte[]>? attachments = null, GeminiSettings? settings = null)
 	{
-		bool hasSettings = settings != null;
-		var convertedOptions = hasSettings ? settings.ToChatOption() : null;
+		var convertedOptions = settings?.ToChatOption();
 		PrepareMessage(message, attachments);
 
 		// send to gemini
 		var chatResponse = await _client.CompleteAsync(_messages, convertedOptions);
+		
+		// set message id of gemini response before appending to message history
+		chatResponse.Message.AdditionalProperties = new AdditionalPropertiesDictionary()
+		{
+			{"id", (ulong)_messages.Count}	
+		};
 		_messages.Add(chatResponse.Message);
 
-		if (OnChatReceive != null)
-			OnChatReceive.Invoke(this, new ChatReceiveEventArgs(chatResponse.Message));
+		OnChatReceive?.Invoke(this, new ChatReceiveEventArgs(chatResponse.Message));
 
-		if (hasSettings && !settings.Conversational)
+		if (settings is { Conversational: false })
 			ClearHistory();
 
 		return chatResponse.Message;
@@ -117,8 +121,7 @@ public class GeminiChat
 	/// </returns>
 	public async IAsyncEnumerable<StreamingChatCompletionUpdate> SendMessageStreaming(string message, IList<byte[]>? attachments = null, GeminiSettings? settings = null)
 	{
-		bool hasSettings = settings != null;
-		var convertedOptions = hasSettings ? settings.ToChatOption() : null;
+		var convertedOptions = settings?.ToChatOption();
 
 		/*
 		 * TODO: 
@@ -126,7 +129,7 @@ public class GeminiChat
 		 * Add event	 
 		 * 
 		 */
-		if (hasSettings && settings.Conversational)
+		if (settings is { Conversational: true })
 			throw new NotSupportedException("Conversational messaging is not supported for SendMessageStreaming!");
 
 		PrepareMessage(message, attachments);
@@ -142,7 +145,7 @@ public class GeminiChat
 		var content = new List<AIContent>();
 
 		// Check attachments
-		if (attachments != null && attachments.Count > 0)
+		if (attachments is { Count: > 0 })
 		{
 			foreach (var attachment in attachments)
 			{
@@ -157,12 +160,15 @@ public class GeminiChat
 		// add text message
 		content.Add(new TextContent(message));
 
-		// append user chat content
-		var userMsg = new ChatMessage(ChatRole.User, content);
+		// set message id of user message before appending to message history
+		var userMsg = new ChatMessage(ChatRole.User, content) { AdditionalProperties = new AdditionalPropertiesDictionary()
+			{
+				{"id", (ulong)_messages.Count}	
+			}
+		};
 		_messages.Add(userMsg);
 
-		if (OnChatReceive != null)
-			OnChatReceive?.Invoke(this, new ChatReceiveEventArgs(userMsg));
+		OnChatReceive?.Invoke(this, new ChatReceiveEventArgs(userMsg));
 	}
 
 }
